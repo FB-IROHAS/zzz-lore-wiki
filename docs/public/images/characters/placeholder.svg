@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="960" viewBox="0 0 720 960" role="img" aria-label="Character image placeholder">
+  <rect width="720" height="960" fill="#141821"/>
+  <rect x="38" y="38" width="644" height="884" rx="18" fill="#191d26" stroke="#303746" stroke-width="2"/>
+  <circle cx="360" cy="330" r="112" fill="#252b38" stroke="#ffd12d" stroke-width="6"/>
+  <path d="M185 742c24-128 116-204 175-204s151 76 175 204" fill="#252b38" stroke="#5aa7ff" stroke-width="6"/>
+  <path d="M136 106h448" stroke="#ffd12d" stroke-width="8"/>
+  <text x="360" y="838" fill="#a9b0be" font-family="Arial, sans-serif" font-size="34" font-weight="700" text-anchor="middle">IMAGE SLOT</text>
+</svg>

@@ -11,13 +11,8 @@ const selectedEra = ref<string>('すべて');
 // 事実/考察のみフィルター
 const filterFactOnly = ref<boolean>(false);
 
-// スクロールコンテナの参照
-const scrollContainerRef = ref<HTMLDivElement | null>(null);
-
-// ドラッグスクロール用状態
-const isDragging = ref<boolean>(false);
-const startX = ref<number>(0);
-const scrollLeftStart = ref<number>(0);
+// アコーディオン展開中のイベントIDセット
+const expandedEventIds = ref<Set<string>>(new Set());
 
 // データの読み込み
 const refreshData = () => {
@@ -28,7 +23,7 @@ onMounted(() => {
   refreshData();
 });
 
-// フィルタリングされたイベントリスト (左: 100年前 ➔ 右: 現在)
+// フィルタリングされたイベントリスト (歴史の流れ: 古代 ➔ 現代)
 const filteredEvents = computed<TimelineEvent[]>(() => {
   return timelineEvents.value.filter(evt => {
     const matchEra = selectedEra.value === 'すべて' || evt.era === selectedEra.value;
@@ -37,33 +32,33 @@ const filteredEvents = computed<TimelineEvent[]>(() => {
   });
 });
 
-// マウスドラッグスクロール処理
-const handleMouseDown = (e: MouseEvent) => {
-  if (!scrollContainerRef.value) return;
-  isDragging.value = true;
-  startX.value = e.pageX - scrollContainerRef.value.offsetLeft;
-  scrollLeftStart.value = scrollContainerRef.value.scrollLeft;
+// アコーディオン開閉切り替え
+const toggleExpand = (id: string) => {
+  if (expandedEventIds.value.has(id)) {
+    expandedEventIds.value.delete(id);
+  } else {
+    expandedEventIds.value.add(id);
+  }
 };
 
-const handleMouseMove = (e: MouseEvent) => {
-  if (!isDragging.value || !scrollContainerRef.value) return;
-  e.preventDefault();
-  const x = e.pageX - scrollContainerRef.value.offsetLeft;
-  const walk = (x - startX.value) * 1.8;
-  scrollContainerRef.value.scrollLeft = scrollLeftStart.value - walk;
+// 全て展開 / 全て折りたたみ
+const expandAll = () => {
+  filteredEvents.value.forEach(e => expandedEventIds.value.add(e.id));
 };
 
-const handleMouseUpOrLeave = () => {
-  isDragging.value = false;
+const collapseAll = () => {
+  expandedEventIds.value.clear();
 };
 </script>
 
 <template>
-  <div class="horizontal-timeline-container">
-    <!-- フィルターコントロール領域 -->
-    <div class="timeline-controls">
-      <div class="filter-group">
-        <span class="filter-label">時代で絞り込み:</span>
+  <div class="wiki-timeline-wrapper">
+    <div class="timeline-toolbar">
+      <div class="timeline-toolbar-head">
+        <strong>時代で絞り込み</strong>
+        <span>{{ filteredEvents.length }}件表示</span>
+      </div>
+      <div class="filter-row">
         <div class="era-buttons">
           <button 
             v-for="era in ERA_LIST" 
@@ -76,104 +71,88 @@ const handleMouseUpOrLeave = () => {
         </div>
       </div>
 
-      <div class="filter-toggle">
+      <div class="control-row">
         <label class="checkbox-label">
           <input type="checkbox" v-model="filterFactOnly" />
-          <span>確定事実・公式情報のみ表示</span>
+          <span>作中確定事実のみ</span>
         </label>
-        <button class="btn-refresh" @click="refreshData" title="データを最新化">
-          🔄 再読み込み
-        </button>
+
+        <div class="toggle-all-btns">
+          <button class="btn-sm" @click="expandAll">すべて展開</button>
+          <button class="btn-sm" @click="collapseAll">すべて折りたたむ</button>
+          <button class="btn-sm btn-icon" @click="refreshData" title="再読み込み">再読込</button>
+        </div>
       </div>
     </div>
 
-    <!-- 軸ガイドヘッダー -->
-    <div class="timeline-axis-guide">
-      <span class="guide-past">⬅ 100年前 (過去)</span>
-      <span class="guide-scroll-hint font-mono">🖱️ マウスドラッグ または 横スクロールで移動できます</span>
-      <span class="guide-present">現在 (Ver.1.x) ➡</span>
-    </div>
-
-    <!-- 横スクロールタイムライン表示領域 (見切れ防止・ドラッグ対応) -->
-    <div 
-      ref="scrollContainerRef"
-      class="timeline-horizontal-scroll"
-      :class="{ 'is-grabbing': isDragging }"
-      @mousedown="handleMouseDown"
-      @mousemove="handleMouseMove"
-      @mouseup="handleMouseUpOrLeave"
-      @mouseleave="handleMouseUpOrLeave"
-    >
+    <div class="timeline-tree-container">
       <div v-if="filteredEvents.length === 0" class="no-events">
-        条件に一致する出来事は登録されていません。
+        条件に該当する出来事は登録されていません。
       </div>
 
-      <div v-else class="horizontal-track">
-        <!-- 横軸ライン -->
-        <div class="horizontal-axis-line"></div>
+      <div v-else class="timeline-tree">
+        <div class="tree-axis-line"></div>
 
         <div 
           v-for="event in filteredEvents" 
           :key="event.id"
-          class="horizontal-item"
+          :class="['tree-item', { expanded: expandedEventIds.has(event.id) }]"
         >
-          <!-- 軸上のノードピン -->
-          <div class="node-pin-container">
-            <div class="node-dot" :class="{ 'fact-dot': event.isFact, 'theory-dot': !event.isFact }"></div>
-            <div class="node-vertical-connector"></div>
+          <div class="tree-pin">
+            <div :class="['dot-node', event.isFact ? 'fact-node' : 'theory-node']"></div>
           </div>
 
-          <!-- ワイドイベントカード -->
-          <div class="event-card">
-            <div v-if="event.image" class="event-image-wrapper">
-              <img :src="event.image" :alt="event.title" class="event-image" loading="lazy" />
+          <article class="compact-event-card">
+            <div class="card-summary-row">
+              <span class="event-date font-mono">{{ event.date || '時期未確定' }}</span>
+              <span :class="event.isFact ? 'badge-fact' : 'badge-theory'">
+                {{ event.isFact ? '公式' : '考察' }}
+              </span>
+              <span class="event-era-label">{{ event.era }}</span>
             </div>
 
-            <div class="card-body">
-              <div class="card-header">
-                <span class="timeline-date">{{ event.date || '時期未確定' }}</span>
-                <span :class="event.isFact ? 'badge-fact' : 'badge-theory'">
-                  {{ event.isFact ? '公式事実' : '考察・推定' }}
-                </span>
+            <h3 class="event-title-text">
+              <a v-if="event.link" :href="event.link">{{ event.title }}</a>
+              <span v-else>{{ event.title }}</span>
+            </h3>
+            <p class="event-brief">{{ event.summary }}</p>
+
+            <button class="expand-indicator" type="button" @click="toggleExpand(event.id)">
+              {{ expandedEventIds.has(event.id) ? '詳細を閉じる' : '詳細を開く' }}
+            </button>
+
+            <div v-if="expandedEventIds.has(event.id)" class="expanded-details">
+              <div v-if="event.details" class="detail-section">
+                <h4 class="section-sub">詳しい経緯</h4>
+                <p class="detail-text">{{ event.details }}</p>
               </div>
 
-              <span class="era-badge">{{ event.era }}</span>
-
-              <h3 class="event-title">
-                <a v-if="event.link" :href="event.link" class="title-link">{{ event.title }}</a>
-                <span v-else>{{ event.title }}</span>
-              </h3>
-
-              <p class="event-summary">{{ event.summary }}</p>
-
-              <!-- メタ情報 -->
-              <div class="event-meta">
-                <div v-if="event.characters && event.characters.length > 0" class="meta-item">
-                  <span class="meta-label">👤 人物:</span>
-                  <span class="meta-tags">
-                    <span v-for="c in event.characters" :key="c" class="meta-tag">{{ c }}</span>
+              <div class="detail-meta-grid">
+                <div v-if="event.characters && event.characters.length > 0" class="meta-block">
+                  <span class="meta-key">関連人物</span>
+                  <span class="meta-val">
+                    <span v-for="c in event.characters" :key="c" class="tag-badge">{{ c }}</span>
                   </span>
                 </div>
 
-                <div v-if="event.organizations && event.organizations.length > 0" class="meta-item">
-                  <span class="meta-label">🏢 組織:</span>
-                  <span class="meta-tags">
-                    <span v-for="o in event.organizations" :key="o" class="meta-tag">{{ o }}</span>
+                <div v-if="event.organizations && event.organizations.length > 0" class="meta-block">
+                  <span class="meta-key">関連組織</span>
+                  <span class="meta-val">
+                    <span v-for="o in event.organizations" :key="o" class="tag-badge">{{ o }}</span>
                   </span>
                 </div>
 
-                <div v-if="event.source" class="meta-item source-item">
-                  <span class="meta-label">📖 出典:</span>
-                  <span class="source-text">{{ event.source }}</span>
+                <div v-if="event.source" class="meta-block">
+                  <span class="meta-key">出典</span>
+                  <span class="meta-val source-val">{{ event.source }}</span>
                 </div>
               </div>
 
-              <!-- 詳細リンクボタン -->
-              <div v-if="event.link" class="link-action">
-                <a :href="event.link" class="detail-btn">詳細記事へ →</a>
+              <div v-if="event.link" class="detail-action">
+                <a :href="event.link" class="link-btn">個別記事へ →</a>
               </div>
             </div>
-          </div>
+          </article>
         </div>
       </div>
     </div>
@@ -181,55 +160,63 @@ const handleMouseUpOrLeave = () => {
 </template>
 
 <style scoped>
-.horizontal-timeline-container {
-  margin: 1.5rem 0;
+/* 専用ワイドコンテナ (1400px〜1500px対応) */
+.wiki-timeline-wrapper {
+  margin: 1.1rem 0 2rem;
   font-family: var(--vp-font-family-base);
   width: 100%;
-  max-width: 100%;
+  max-width: 1520px;
   box-sizing: border-box;
 }
 
-/* フィルターコントロール */
-.timeline-controls {
-  background: var(--vp-c-bg-soft);
+/* ツールバー */
+.timeline-toolbar {
+  background: var(--vp-c-bg-elv);
   border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
-  padding: 1.2rem;
-  margin-bottom: 1.2rem;
+  border-radius: 6px;
+  padding: 0.7rem 0.8rem;
+  margin-bottom: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-  box-sizing: border-box;
+  gap: 0.65rem;
 }
 
-.filter-group {
+.timeline-toolbar-head {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--vp-c-text-2);
+  font-size: 0.82rem;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .filter-label {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: var(--vp-c-text-2);
 }
 
 .era-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .era-btn {
-  background: var(--vp-c-bg-elv);
+  background: var(--vp-c-bg-soft);
   border: 1px solid var(--vp-c-divider);
   color: var(--vp-c-text-2);
-  padding: 0.4rem 0.85rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
+  padding: 0.24rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .era-btn:hover {
@@ -241,311 +228,325 @@ const handleMouseUpOrLeave = () => {
   background: var(--vp-c-brand-soft);
   border-color: var(--vp-c-brand-1);
   color: var(--vp-c-brand-1);
-  font-weight: 600;
+  font-weight: 700;
 }
 
-.filter-toggle {
+.control-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  border-top: 1px dashed var(--vp-c-divider);
+  padding-top: 0.6rem;
+  font-size: 0.82rem;
 }
 
 .checkbox-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.88rem;
+  gap: 0.4rem;
   color: var(--vp-c-text-2);
   cursor: pointer;
 }
 
-.btn-refresh {
-  background: var(--vp-c-bg-elv);
-  border: 1px solid var(--vp-c-divider);
-  color: var(--vp-c-text-2);
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.btn-refresh:hover {
-  border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
-}
-
-/* 軸ガイドヘッダー */
-.timeline-axis-guide {
+.toggle-all-btns {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.8rem 1.2rem;
-  background: var(--vp-c-bg-elv);
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 8px 8px 0 0;
-  font-size: 0.9rem;
-  font-weight: 700;
-  width: 100%;
-  box-sizing: border-box;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }
 
-.guide-past {
-  color: #2da8ff;
-}
-
-.guide-present {
-  color: var(--vp-c-brand-1);
-}
-
-.guide-scroll-hint {
-  font-size: 0.82rem;
-  color: var(--vp-c-text-3);
-  font-weight: 400;
-}
-
-/* 横スクロールコンテナ (100%幅・見切れ防止) */
-.timeline-horizontal-scroll {
+.btn-sm {
   background: var(--vp-c-bg-soft);
   border: 1px solid var(--vp-c-divider);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  padding: 3.5rem 1.5rem 2rem 1.5rem;
-  overflow-x: auto;
+  color: var(--vp-c-text-2);
+  padding: 0.22rem 0.48rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.btn-sm:hover {
+  color: var(--vp-c-text-1);
+  border-color: var(--vp-c-brand-1);
+}
+
+/* ツリータイムライン */
+.timeline-tree-container {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  padding: 1.15rem 1rem 1.2rem;
   position: relative;
-  cursor: grab;
-  user-select: none;
-  scrollbar-width: thin;
-  scrollbar-color: var(--vp-c-brand-1) var(--vp-c-bg-elv);
-  min-height: 520px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.timeline-horizontal-scroll.is-grabbing {
-  cursor: grabbing;
-}
-
-.timeline-horizontal-scroll::-webkit-scrollbar {
-  height: 10px;
-}
-
-.timeline-horizontal-scroll::-webkit-scrollbar-track {
-  background: var(--vp-c-bg-elv);
-}
-
-.timeline-horizontal-scroll::-webkit-scrollbar-thumb {
-  background: var(--vp-c-brand-1);
-  border-radius: 5px;
 }
 
 .no-events {
-  padding: 3rem;
+  padding: 2rem;
   text-align: center;
   color: var(--vp-c-text-3);
 }
 
-/* 横トラック */
-.horizontal-track {
-  display: flex;
-  gap: 2rem;
+.timeline-tree {
   position: relative;
-  min-width: max-content;
-  padding-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.62rem;
 }
 
-/* 横軸メインライン */
-.horizontal-axis-line {
+/* 時系列ツリー軸線 */
+.tree-axis-line {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #2da8ff 0%, var(--vp-c-brand-1) 100%);
-  box-shadow: 0 0 12px rgba(255, 209, 45, 0.5);
+  bottom: 0;
+  left: 19px;
+  width: 2px;
+  background: var(--vp-c-divider);
+  z-index: 1;
 }
 
-/* ワイドイベント項目 */
-.horizontal-item {
+.tree-item {
   display: flex;
-  flex-direction: column;
-  width: 380px;
-  flex-shrink: 0;
+  gap: 0.75rem;
   position: relative;
-}
-
-/* ノードピン */
-.node-pin-container {
-  position: absolute;
-  top: -1.5rem;
-  left: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translateY(-50%);
-}
-
-.node-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 3px solid var(--vp-c-bg-soft);
   z-index: 2;
 }
 
-.fact-dot {
+.tree-pin {
+  width: 40px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding-top: 0.78rem;
+}
+
+.dot-node {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--vp-c-bg-soft);
+}
+
+.fact-node {
   background-color: #2da8ff;
-  box-shadow: 0 0 12px rgba(45, 168, 255, 0.8);
+  box-shadow: 0 0 6px rgba(45, 168, 255, 0.6);
 }
 
-.theory-dot {
+.theory-node {
   background-color: #ffd12d;
-  box-shadow: 0 0 12px rgba(255, 209, 45, 0.8);
+  box-shadow: 0 0 6px rgba(255, 209, 45, 0.6);
 }
 
-.node-vertical-connector {
-  width: 2px;
-  height: 24px;
-  background-color: var(--vp-c-divider);
-}
-
-/* カードボディ */
-.event-card {
+/* コンパクト軽量カード */
+.compact-event-card {
+  flex-grow: 1;
   background: var(--vp-c-bg-elv);
   border: 1px solid var(--vp-c-divider);
-  border-radius: 10px;
-  overflow: hidden;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  border-radius: 6px;
+  padding: 0.68rem 0.8rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.event-card:hover {
-  transform: translateY(-4px);
+.compact-event-card:hover {
   border-color: var(--vp-c-brand-1);
-  box-shadow: 0 8px 20px rgba(255, 209, 45, 0.15);
 }
 
-.event-image-wrapper {
-  width: 100%;
-  height: 170px;
-  overflow: hidden;
-  background: #000;
+.tree-item.expanded .compact-event-card {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-bg-elv);
 }
 
-.event-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.event-card:hover .event-image {
-  transform: scale(1.04);
-}
-
-.card-body {
-  padding: 1.2rem;
+/* まとめ行 */
+.card-summary-row {
   display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.4rem;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
-.timeline-date {
-  font-family: var(--vp-font-family-mono);
+.event-date {
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 0.8rem;
   color: var(--vp-c-brand-1);
+  min-width: 96px;
 }
 
-.era-badge {
-  font-size: 0.75rem;
+.event-era-label {
+  font-size: 0.72rem;
   color: var(--vp-c-text-3);
-  margin-bottom: 0.5rem;
+  background: var(--vp-c-bg-soft);
+  padding: 1px 6px;
+  border-radius: 3px;
 }
 
-.event-title {
-  margin: 0.3rem 0 0.5rem 0;
-  font-size: 1.1rem;
+.event-title-text {
+  margin: 0.32rem 0 0;
+  font-size: 0.98rem;
   font-weight: 700;
+  color: var(--vp-c-text-1);
   line-height: 1.45;
 }
 
-.title-link {
-  color: var(--vp-c-text-1);
+.event-title-text a {
+  color: inherit;
   text-decoration: none;
 }
 
-.title-link:hover {
+.event-title-text a:hover {
   color: var(--vp-c-brand-1);
 }
 
-.event-summary {
-  font-size: 0.9rem;
-  color: var(--vp-c-text-2);
-  line-height: 1.65;
-  margin-bottom: 1rem;
-  flex-grow: 1;
+.expand-indicator {
+  margin-top: 0.45rem;
+  background: transparent;
+  border: 0;
+  color: var(--vp-c-brand-1);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0;
 }
 
-.event-meta {
+/* 1〜2行の短文概要 */
+.event-brief {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+  color: var(--vp-c-text-2);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* アコーディオン詳細表示領域 */
+.expanded-details {
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed var(--vp-c-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.section-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--vp-c-brand-1);
+}
+
+.detail-text {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--vp-c-text-1);
+  line-height: 1.7;
+}
+
+.detail-image-box {
+  max-width: 480px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+}
+
+.detail-image-box img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.detail-meta-grid {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  font-size: 0.8rem;
-  border-top: 1px solid var(--vp-c-divider);
-  padding-top: 0.7rem;
+  font-size: 0.78rem;
+  background: var(--vp-c-bg-soft);
+  padding: 0.55rem 0.65rem;
+  border-radius: 4px;
 }
 
-.meta-item {
+.meta-block {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.meta-label {
+.meta-key {
   color: var(--vp-c-text-3);
+  font-weight: 600;
+  min-width: 4.2rem;
 }
 
-.meta-tags {
+.meta-val {
   display: flex;
   gap: 0.3rem;
   flex-wrap: wrap;
 }
 
-.meta-tag {
-  background: var(--vp-c-bg-soft);
-  padding: 2px 6px;
-  border-radius: 4px;
+.tag-badge {
+  background: var(--vp-c-bg-elv);
+  border: 1px solid var(--vp-c-divider);
+  padding: 1px 5px;
+  border-radius: 3px;
   color: var(--vp-c-text-2);
 }
 
-.source-text {
-  color: var(--vp-c-text-3);
+.source-val {
+  color: var(--vp-c-text-2);
   font-style: italic;
 }
 
-.link-action {
-  margin-top: 0.8rem;
+.detail-action {
   text-align: right;
+  margin-top: 0.3rem;
 }
 
-.detail-btn {
+.link-btn {
   font-size: 0.82rem;
   color: var(--vp-c-brand-1);
-  text-decoration: none;
   font-weight: 600;
+  text-decoration: none;
 }
 
-.detail-btn:hover {
+.link-btn:hover {
   text-decoration: underline;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+  .timeline-toolbar {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
+
+  .control-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .tree-axis-line {
+    left: 10px;
+  }
+  .tree-pin {
+    width: 22px;
+  }
+  .card-summary-row {
+    align-items: flex-start;
+    gap: 0.28rem;
+  }
+
+  .compact-event-card {
+    padding: 0.62rem 0.68rem;
+  }
+
+  .event-date {
+    min-width: 0;
+  }
 }
 </style>

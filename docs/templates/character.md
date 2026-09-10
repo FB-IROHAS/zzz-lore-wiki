@@ -5,7 +5,26 @@ description: キャラクターの概要・作中事実・時系列・関係性�
 
 # 👤 [キャラクター名]
 
----
+<CharacterProfile
+  image="/images/characters/placeholder.svg"
+  alt="[キャラクター名]の画像"
+  faction-logo="/images/factions/placeholder.svg"
+  faction-logo-alt="[陣営名]のロゴ"
+  real-name="未記入"
+  alias="未記入"
+  gender="未記入"
+  age="未記入"
+  height="未記入"
+  birthday="未記入"
+  species="未記入"
+  faction="未記入"
+  cv="未記入"
+  occupation="未記入"
+  release-date="未記入"
+  attribute="未記入"
+  specialty="未記入"
+  attack-type="未記入"
+/>
 
 ## 概要
 
@@ -19,11 +38,6 @@ description: キャラクターの概要・作中事実・時系列・関係性�
 ここにゲーム本編、公式設定、信頼性の高い描写から確認できる**確定情報**を記述します。
 推測や感想は含めず、事実のみを挙げてください。
 :::
-
-### 基本設定
-* **所属**: 
-* **役割 / 職号**: 
-* **主な拠点**: 
 
 ### 経歴・作中での行動
 1. **○○期**: 

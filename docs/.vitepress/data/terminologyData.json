@@ -1,0 +1,223 @@
+[
+  {
+    "slug": "hollow",
+    "term": "ホロウ",
+    "english": "Hollow",
+    "category": "空間・科学",
+    "summary": "空間変異とエーテル侵蝕に関わる災害領域。",
+    "description": "ホロウは、空間が球状に歪み、内部でエーテル侵蝕を引き起こす災害領域として扱われる用語です。",
+    "related": ["エーテル", "エーテリアン", "プロキシ"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "ether",
+    "term": "エーテル",
+    "english": "Ether",
+    "category": "空間・科学",
+    "summary": "ホロウ内で扱われる未知のエネルギー物質。",
+    "description": "エーテルは、ホロウ内部で発生・増殖するとされる未知のエネルギー物質です。高濃度では生物の変質と関係するものとして説明されます。",
+    "related": ["ホロウ", "エーテリアン"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "ethereal",
+    "term": "エーテリアス",
+    "english": "Ethereal",
+    "aliases": ["エーテリアス"],
+    "category": "空間・科学",
+    "summary": "エーテル侵蝕と関わる異形存在。",
+    "description": "エーテリアンは、ホロウ内部でのエーテル侵蝕と関わる異形存在を指す用語です。",
+    "related": ["ホロウ", "エーテル"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "new-eridu",
+    "term": "新エリー都",
+    "english": "New Eridu",
+    "category": "都市・社会",
+    "summary": "ホロウ災害後の主要都市。",
+    "description": "新エリー都は、ホロウ災害後の主要都市として扱われる地名・都市名です。",
+    "related": ["ホロウ", "プロキシ"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "proxy",
+    "term": "プロキシ",
+    "english": "Proxy",
+    "category": "都市・社会",
+    "summary": "ホロウ内部の案内を担う存在・役割。",
+    "description": "プロキシは、ホロウ内部のナビゲーションやガイドを専門に行う存在・役割を指す用語です。",
+    "related": ["ホロウ", "ボンプ", "Random Play"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "bangboo",
+    "term": "ボンプ",
+    "english": "Bangboo",
+    "category": "都市・社会",
+    "summary": "ホロウ環境で活動を支援する小型自律ロボット。",
+    "description": "ボンプは、ホロウ環境下での活動を支援するために開発された小型自律型ロボットとして扱われる用語です。",
+    "related": ["ホロウ", "プロキシ"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "gentle-house",
+    "term": "邪兎屋",
+    "english": "Gentle House",
+    "category": "陣営",
+    "summary": "依頼を請け負う民間陣営。",
+    "description": "邪兎屋は、作中で依頼を請け負う民間陣営として扱われる名称です。",
+    "related": ["プロキシ", "新エルド"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "random-play",
+    "term": "Random Play",
+    "category": "拠点",
+    "summary": "六分街のビデオ屋およびプロキシ拠点。",
+    "description": "Random Playは、六分街にあるビデオ屋であり、プロキシの拠点として扱われる名称です。",
+    "related": ["プロキシ", "アキラ", "リン"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "phaethon",
+    "term": "パエトーン",
+    "category": "都市・社会",
+    "summary": "プロキシに関係する名称。",
+    "description": "パエトーンは、プロキシに関係する名称として扱われる用語です。",
+    "related": ["プロキシ", "Random Play", "アキラ", "リン"],
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  },
+  {
+    "slug": "human",
+    "term": "人間",
+    "category": "種族",
+    "summary": "キャラクターの種族欄で使用する基本分類。",
+    "description": "人間は、キャラクターの種族欄で使用する基本分類です。",
+    "related": ["新エルド", "エーテリアン"],
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "intelligent-construct",
+    "term": "知能構造体",
+    "category": "種族",
+    "summary": "自己認識があり、人間と同等として扱われる機械生命体。",
+    "description": "知能構造体は、キャラクターの種族欄で使用する基本分類です。自己認識があり、人間と同等として扱われる機械生命体として扱われます。",
+    "related": ["人間", "ボンプ"],
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "physical-attribute",
+    "term": "物理",
+    "category": "属性",
+    "summary": "キャラクターの属性欄で使用する分類。",
+    "description": "物理は、キャラクターの属性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "fire-attribute",
+    "term": "炎",
+    "category": "属性",
+    "summary": "キャラクターの属性欄で使用する分類。",
+    "description": "炎は、キャラクターの属性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "ice-attribute",
+    "term": "氷",
+    "category": "属性",
+    "summary": "キャラクターの属性欄で使用する分類。",
+    "description": "氷は、キャラクターの属性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "electric-attribute",
+    "term": "電気",
+    "category": "属性",
+    "summary": "キャラクターの属性欄で使用する分類。",
+    "description": "電気は、キャラクターの属性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "ether-attribute",
+    "term": "エーテル属性",
+    "category": "属性",
+    "summary": "キャラクターの属性欄で使用する分類。",
+    "description": "エーテル属性は、キャラクターの属性欄で使用する分類です。",
+    "related": ["エーテル"],
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "attack-specialty",
+    "term": "強攻",
+    "category": "特性",
+    "summary": "キャラクターの特性欄で使用する分類。",
+    "description": "強攻は、キャラクターの特性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "anomaly-specialty",
+    "term": "異常",
+    "category": "特性",
+    "summary": "キャラクターの特性欄で使用する分類。",
+    "description": "異常は、キャラクターの特性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "stun-specialty",
+    "term": "撃破",
+    "category": "特性",
+    "summary": "キャラクターの特性欄で使用する分類。",
+    "description": "撃破は、キャラクターの特性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "support-specialty",
+    "term": "支援",
+    "category": "特性",
+    "summary": "キャラクターの特性欄で使用する分類。",
+    "description": "支援は、キャラクターの特性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "defense-specialty",
+    "term": "防護",
+    "category": "特性",
+    "summary": "キャラクターの特性欄で使用する分類。",
+    "description": "防護は、キャラクターの特性欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "slash-attack",
+    "term": "斬撃",
+    "category": "攻撃タイプ",
+    "summary": "キャラクターの攻撃タイプ欄で使用する分類。",
+    "description": "斬撃は、キャラクターの攻撃タイプ欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "strike-attack",
+    "term": "打撃",
+    "category": "攻撃タイプ",
+    "summary": "キャラクターの攻撃タイプ欄で使用する分類。",
+    "description": "打撃は、キャラクターの攻撃タイプ欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "pierce-attack",
+    "term": "刺突",
+    "category": "攻撃タイプ",
+    "summary": "キャラクターの攻撃タイプ欄で使用する分類。",
+    "description": "刺突は、キャラクターの攻撃タイプ欄で使用する分類です。",
+    "references": ["ゲーム内プロフィール", "公式公開資料"]
+  },
+  {
+    "slug": "zenlesszonezero",
+    "term": "ゼンレスゾーンゼロ",
+    "english": "Zenless Zone Zero",
+    "category": "ゲーム",
+    "summary": "miHoYoによって開発・配信されているアクションRPGである。",
+    "description": "miHoYoによって開発・配信されているアクションRPG。",
+    "references": ["ゲーム内テキスト", "公式公開資料"]
+  }
+]
