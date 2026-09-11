@@ -259,7 +259,13 @@ export const githubRequest = async <T>(env: Env, path: string, init: RequestInit
     },
   });
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: { message?: string } | null = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    if (!response.ok) throw new HttpError(response.status, text || 'GitHub API error');
+    throw new HttpError(502, 'GitHub API returned an invalid response');
+  }
   if (!response.ok) throw new HttpError(response.status, data?.message ?? 'GitHub API error');
   return data as T;
 };
