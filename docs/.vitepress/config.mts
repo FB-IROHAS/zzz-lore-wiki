@@ -1,6 +1,5 @@
 import { defineConfig } from 'vitepress'
 import { wikiLinkEntries } from './data/wikiLinks'
-import terms from './data/terminologyData.json'
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -11,17 +10,18 @@ const autoLinkTerms = wikiLinkEntries
 const autoLinkPattern = new RegExp(`(${autoLinkTerms.map(item => escapeRegExp(item.term)).join('|')})`, 'g')
 const autoLinkMap = new Map(autoLinkTerms.map(item => [item.term, item.link]))
 const normalizeWikiPath = (value: string) => `/${value.replace(/^\//, '').replace(/\.md$/, '').replace(/\.html$/, '')}`
-const terminologySidebarItems = (terms as { slug: string; term: string }[]).map(term => ({
-  text: term.term,
-  link: `/terminology/${term.slug}`
-}))
-
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "ZZZ Lore & Archive",
   description: "「ゼンレスゾーンゼロ」のストーリー・世界観・設定・時系列・考察を整理する設定資料Wiki",
   lang: 'ja-JP',
   appearance: 'dark',
+  srcExclude: [
+    'editor/**/*.md',
+    'templates/**/*.md',
+    'characters/index.md',
+    'terminology/index.md'
+  ],
   
   head: [
     ['meta', { name: 'theme-color', content: '#121316' }],
@@ -38,9 +38,6 @@ export default defineConfig({
     nav: [
       { text: 'ホーム', link: '/' },
       { text: '年代表', link: '/timeline/' },
-      { text: 'キャラクター', link: '/characters/' },
-      { text: '組織・勢力', link: '/organizations/' },
-      { text: '用語集', link: '/terminology/' },
       { text: '考察', link: '/theories/' },
       { text: '資料・出典', link: '/sources/' }
     ],
@@ -57,12 +54,10 @@ export default defineConfig({
       ],
       '/characters/': [
         {
-          text: 'キャラクター',
+          text: '記事',
           items: [
-            { text: 'キャラクター一覧', link: '/characters/' },
             { text: 'アキラ', link: '/characters/akira' },
-            { text: 'リン', link: '/characters/rin' },
-            { text: '[テンプレート] キャラクター記事', link: '/templates/character' }
+            { text: 'リン', link: '/characters/rin' }
           ]
         }
       ],
@@ -74,22 +69,11 @@ export default defineConfig({
           ]
         }
       ],
-      '/terminology/': [
-        {
-          text: '用語集',
-          items: [
-            { text: '用語一覧', link: '/terminology/' },
-            ...terminologySidebarItems,
-            { text: '[テンプレート] 用語記事', link: '/templates/terminology' }
-          ]
-        }
-      ],
       '/theories/': [
         {
-          text: '考察データベース',
+          text: '記事',
           items: [
-            { text: '考察一覧', link: '/theories/' },
-            { text: '[テンプレート] 考察記事', link: '/templates/theory' }
+            { text: '考察一覧', link: '/theories/' }
           ]
         }
       ],
@@ -101,16 +85,6 @@ export default defineConfig({
           ]
         }
       ],
-      '/templates/': [
-        {
-          text: '記事作成テンプレート',
-          items: [
-            { text: 'キャラクターテンプレート', link: '/templates/character' },
-            { text: '用語テンプレート', link: '/templates/terminology' },
-            { text: '考察テンプレート', link: '/templates/theory' }
-          ]
-        }
-      ]
     },
 
     // VitePress 組み込みローカル検索
@@ -184,7 +158,7 @@ export default defineConfig({
                 nextChildren.push(textToken)
               }
 
-              const linkHref = autoLinkMap.get(match) ?? '/terminology/'
+              const linkHref = autoLinkMap.get(match) ?? '/'
 
               if (normalizeWikiPath(linkHref) === currentPath) {
                 const textToken = new Token('text', '', 0)

@@ -1,24 +1,6 @@
 <script setup lang="ts">
 import LatestPopularArticles from './LatestPopularArticles.vue';
 import SidebarWidget from './SidebarWidget.vue';
-
-interface CategoryItem {
-  label: string;
-  desc: string;
-  content: string;
-  link: string;
-  tone: 'timeline' | 'character' | 'org' | 'term' | 'theory' | 'source' | 'edit';
-}
-
-const categories: CategoryItem[] = [
-  { label: '年代表', desc: '事件の流れ', content: '古代・旧都崩壊・新エルド現代', link: '/timeline/', tone: 'timeline' },
-  { label: 'キャラクター', desc: '人物背景', content: '所属、作中事実、関係性', link: '/characters/', tone: 'character' },
-  { label: '組織・勢力', desc: '陣営資料', content: '治安局、企業、各派閥', link: '/organizations/', tone: 'org' },
-  { label: '用語集', desc: '世界観辞典', content: 'ホロウ、エーテル、プロキシ', link: '/terminology/', tone: 'term' },
-  { label: '考察', desc: '仮説と検証', content: 'Sunbringer、業核、Prophecy', link: '/theories/', tone: 'theory' },
-  { label: '資料・出典', desc: '根拠索引', content: '作中文書、公式PV、設定資料', link: '/sources/', tone: 'source' },
-  { label: 'GitHubで編集', desc: '管理者向け', content: 'Markdown記事の更新導線', link: '/editor/', tone: 'edit' },
-];
 </script>
 
 <template>
@@ -27,8 +9,8 @@ const categories: CategoryItem[] = [
       <p class="portal-kicker">Zenless Zone Zero Lore / Theory Archive</p>
       <h1 class="portal-title">ZZZ Lore & Archive</h1>
       <p class="portal-desc">
-        作中で確認できる設定資料と、そこから派生する考察を分けて読むための非公式Wikiです。
-        年表、人物、用語、出典から、いま調べたい情報へ短い手数で移動できます。
+        設定資料、時系列、考察記事を読むための非公式アーカイブです。
+        公開側は記事閲覧に絞り、編集用テンプレートや管理導線は表示しません。
       </p>
     </header>
 
@@ -36,53 +18,23 @@ const categories: CategoryItem[] = [
       <main class="main-column">
         <section class="route-strip" aria-label="主要導線">
           <a href="/timeline/" class="route-tile route-primary">
-            <span class="route-label">年代表</span>
-            <strong>歴史の流れを確認</strong>
-            <small>旧都崩壊から現代までを時代別に追う</small>
+            <span class="route-label">Timeline</span>
+            <strong>年代表を読む</strong>
+            <small>旧都崩壊から現代までの流れを追う</small>
           </a>
           <a href="/theories/" class="route-tile">
-            <span class="route-label">考察</span>
-            <strong>注目仮説を読む</strong>
+            <span class="route-label">Articles</span>
+            <strong>考察記事を読む</strong>
             <small>根拠、反証、未解決点を分けて整理</small>
           </a>
-          <a href="/terminology/" class="route-tile">
-            <span class="route-label">用語</span>
-            <strong>設定語を引く</strong>
-            <small>ホロウ、エーテル、都市構造の基本語彙</small>
+          <a href="/sources/" class="route-tile">
+            <span class="route-label">Sources</span>
+            <strong>資料・出典を見る</strong>
+            <small>公式資料や作中情報の参照先を確認する</small>
           </a>
         </section>
 
         <LatestPopularArticles />
-
-        <section class="portal-section">
-          <div class="section-heading">
-            <h2>主要カテゴリ</h2>
-            <p>記事が増えても迷子になりにくい、固定の入口です。</p>
-          </div>
-          <div class="category-table-wrapper">
-            <table class="category-table">
-              <thead>
-                <tr>
-                  <th>カテゴリ</th>
-                  <th>用途</th>
-                  <th>主な内容</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="cat in categories" :key="cat.label">
-                  <td>
-                    <span :class="['cat-marker', cat.tone]"></span>
-                    <strong>{{ cat.label }}</strong>
-                  </td>
-                  <td>{{ cat.desc }}</td>
-                  <td>{{ cat.content }}</td>
-                  <td><a :href="cat.link" class="table-link">開く</a></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
 
         <section class="portal-section">
           <div class="section-heading">
@@ -233,76 +185,6 @@ const categories: CategoryItem[] = [
   margin: 0;
   color: var(--vp-c-text-3);
   font-size: 0.84rem;
-}
-
-.category-table-wrapper {
-  overflow-x: auto;
-  background: var(--vp-c-bg-elv);
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 6px;
-}
-
-.category-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-  text-align: left;
-}
-
-.category-table th {
-  background: var(--vp-c-bg-soft);
-  padding: 0.58rem 0.75rem;
-  font-weight: 700;
-  border-bottom: 1px solid var(--vp-c-divider);
-  color: var(--vp-c-text-2);
-}
-
-.category-table td {
-  padding: 0.62rem 0.75rem;
-  border-bottom: 1px solid var(--vp-c-divider);
-  vertical-align: middle;
-}
-
-.category-table tr:last-child td {
-  border-bottom: none;
-}
-
-.cat-marker {
-  display: inline-block;
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 999px;
-  margin-right: 0.5rem;
-  background: var(--vp-c-brand-1);
-}
-
-.cat-marker.character,
-.cat-marker.org,
-.cat-marker.source {
-  background: #5aa7ff;
-}
-
-.cat-marker.term {
-  background: #51d6b0;
-}
-
-.cat-marker.theory {
-  background: #a990ff;
-}
-
-.cat-marker.edit,
-.cat-marker.warning {
-  background: #ffb15a;
-}
-
-.table-link {
-  color: var(--vp-c-brand-1);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.table-link:hover {
-  text-decoration: underline;
 }
 
 /* 凡例グリッド */

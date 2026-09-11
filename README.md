@@ -72,3 +72,32 @@ npm run deploy
 ```
 
 このコマンドは VitePress をビルドしてから `wrangler deploy` を実行します。
+
+Cloudflare の Git 連携でデプロイする場合は、`wrangler deploy` を直接 deploy command にしないでください。`docs/.vitepress/dist` は git に含めないため、先に VitePress build が必要です。
+
+推奨設定:
+
+```text
+Build command: npm run docs:build
+Deploy command: npx wrangler deploy
+```
+
+または deploy command だけ指定できる画面では、以下を指定してください。
+
+```text
+Deploy command: npm run deploy:cloudflare
+```
+
+## 管理APIが見つかりません と表示される場合
+
+管理画面は同一 origin の `/api/admin/*` を呼びます。この表示は、認証失敗ではなく「その URL に Worker API が存在しない」時に出ることが多いです。
+
+確認項目:
+
+- Cloudflare の Deploy command が `npm run deploy:cloudflare`、または `npm run docs:build` の後に `npx wrangler deploy` になっている
+- `wrangler.toml` の `[assets]` が `docs/.vitepress/dist` を指している
+- `wrangler.toml` の `main = "src/worker.ts"` が反映された状態で deploy されている
+- Cloudflare Access で `/admin/*` だけでなく `/api/admin/*` も保護している
+- `vitepress dev` ではなく、API も確認するときは `npm run dev:cloudflare` を使っている
+
+Cloudflare 側で `wrangler deploy` だけを直接実行すると、VitePress の build output が作られず、また Worker API ではなく静的ファイルだけの状態になることがあります。

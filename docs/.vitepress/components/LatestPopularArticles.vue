@@ -18,7 +18,7 @@ const featuredArticles: ArticleCard[] = [
     summary: '旧都が崩壊した際のエーテル濃度上昇と空間拡張の因果関係について、作中描写をもとに分析。',
     date: '2026-09-10',
     link: '/theories/',
-    badge: '注目',
+    badge: 'おすすめ',
     status: 'theory'
   },
   {
@@ -27,7 +27,7 @@ const featuredArticles: ArticleCard[] = [
     category: '世界観設定',
     summary: '主人公らが扱うボンプ視界同期の技術的ルーツと、旧都防壁技術との関係性についての仮説。',
     date: '2026-09-09',
-    link: '/terminology/',
+    link: '/theories/',
     badge: '未解決',
     status: 'theory'
   },
@@ -56,23 +56,23 @@ const latestArticles: ArticleCard[] = [
   },
   {
     id: 'lat-2',
-    title: 'キャラクター「邪兎屋」関係者と作中描写の確定事実まとめ',
+    title: 'アキラ：Random Playを拠点とするプロキシ',
     category: 'キャラクター',
-    summary: 'アキラ、リン、邪兎屋メンバーの過去・経歴・人間関係について確定している作中事実一覧。',
+    summary: '作中で確認できるプロフィール、立ち位置、関連する設定を整理。',
     date: '2026-09-10',
-    link: '/characters/',
+    link: '/characters/akira',
     badge: 'NEW',
     status: 'fact'
   },
   {
     id: 'lat-3',
-    title: '【テンプレート】記事作成用キャラクター/用語/考察フォーマット',
-    category: 'Wiki管理',
-    summary: '確定事実と考察・仮説を視覚的に区別して執筆するための標準Markdownテンプレート。',
+    title: '業核とエーテル変異現象の整理',
+    category: '考察',
+    summary: '用語の背景と考察上の論点を記事として読める形で整理。',
     date: '2026-09-09',
-    link: '/templates/character',
+    link: '/theories/',
     badge: 'UPDATED',
-    status: 'source'
+    status: 'theory'
   }
 ];
 </script>
@@ -81,7 +81,7 @@ const latestArticles: ArticleCard[] = [
   <div class="portal-articles-wrapper">
     <section class="section-container">
       <div class="section-header">
-        <h2 class="section-title">注目の考察・資料</h2>
+        <h2 class="section-title">おすすめ記事</h2>
         <a href="/theories/" class="more-link">考察一覧を見る →</a>
       </div>
 
@@ -124,6 +124,7 @@ const latestArticles: ArticleCard[] = [
           <span>{{ article.summary }}</span>
         </a>
       </div>
+      <p class="section-note">※ おすすめ記事と最近更新は現在、管理者が手動で指定しています。アクセス数の自動集計ではありません。</p>
     </section>
   </div>
 </template>
@@ -287,6 +288,13 @@ const latestArticles: ArticleCard[] = [
   color: var(--vp-c-text-2);
   font-size: 0.78rem;
   line-height: 1.45;
+}
+
+.section-note {
+  margin: 0.25rem 0 0;
+  color: var(--vp-c-text-3);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 768px) {

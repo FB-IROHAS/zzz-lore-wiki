@@ -25,15 +25,8 @@ export const recentArticlesData: RecentArticle[] = [
   {
     id: 'rec-act-3',
     title: '業核・結使の公式記録テキスト整理',
-    link: '/terminology/',
+    link: '/theories/',
     updatedDate: '09/09',
-    category: '用語'
-  },
-  {
-    id: 'rec-act-4',
-    title: '記事作成・管理用フォーマットガイド',
-    link: '/templates/character',
-    updatedDate: '09/08',
-    category: '管理'
+    category: '考察'
   }
 ];

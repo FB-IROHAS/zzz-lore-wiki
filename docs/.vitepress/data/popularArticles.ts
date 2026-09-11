@@ -6,7 +6,7 @@ export interface PopularArticle {
   category?: string;    // カテゴリ表記
 }
 
-// 手動管理可能な「人気記事」データ
+// 手動管理のおすすめ記事データ。アクセス数の自動集計ではありません。
 export const popularArticlesData: PopularArticle[] = [
   {
     id: 'pop-1',
@@ -26,7 +26,7 @@ export const popularArticlesData: PopularArticle[] = [
     id: 'pop-3',
     rank: '03',
     title: '業核 (エーテルコア) の高濃度変異現象',
-    link: '/terminology/',
+    link: '/theories/',
     category: '用語'
   },
   {

@@ -857,6 +857,13 @@
   padding: 1rem;
 }
 
+.admin-preview img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+}
+
 .mobile-editor-tabs {
   display: none;
 }

@@ -7,7 +7,7 @@ import { recentArticlesData } from '../data/recentArticles';
 <template>
   <aside class="wiki-sidebar-widget">
     <div class="widget-block">
-      <h3 class="widget-title">人気記事</h3>
+      <h3 class="widget-title">関連考察</h3>
       <ol class="popular-list">
         <li v-for="item in popularArticlesData" :key="item.id" class="popular-item">
           <span class="rank-num font-mono">{{ item.rank }}</span>
@@ -84,7 +84,7 @@ import { recentArticlesData } from '../data/recentArticles';
   border-radius: 2px;
 }
 
-/* 人気記事リスト */
+/* おすすめ記事リスト */
 .popular-list {
   list-style: none;
   padding: 0;

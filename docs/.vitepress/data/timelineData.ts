@@ -32,7 +32,7 @@ export const defaultTimelineEvents: TimelineEvent[] = [
     details: '古文書および断片的な石刻記録に残る最古のホロウ観測データ。当時からエーテル変異の兆候が確認されているが、原因の解明には至っていない。',
     characters: ['古代研究者'],
     organizations: ['黎明観測機関'],
-    link: '/terminology/',
+    link: '/theories/',
     source: 'ゲーム内フレーバーテキスト [サンプル]',
     isFact: true
   },

@@ -8,6 +8,7 @@
     "docs:build": "node scripts/generate-terminology-pages.mjs && vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "dev:cloudflare": "npm run docs:build && wrangler dev",
+    "deploy:cloudflare": "npm run docs:build && wrangler deploy",
     "deploy": "npm run docs:build && wrangler deploy"
   }
 }

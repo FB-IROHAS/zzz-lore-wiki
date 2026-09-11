@@ -30,14 +30,6 @@ interface ImageItem {
   uploadedAt?: string;
 }
 
-interface PreviewBlock {
-  type: 'h1' | 'h2' | 'h3' | 'p' | 'quote' | 'list' | 'code' | 'container' | 'table';
-  text?: string;
-  items?: string[];
-  rows?: string[][];
-  containerType?: string;
-}
-
 const categories: { value: Category; label: string }[] = [
   { value: 'character', label: 'キャラクター' },
   { value: 'organization', label: '組織・陣営' },
@@ -105,7 +97,7 @@ const filteredArticles = computed(() => articles.value.filter(article => {
   return matchesCategory && target.includes(query.value.toLowerCase());
 }));
 
-const previewBlocks = computed(() => renderPreview(form.value.body));
+const renderedPreview = computed(() => renderMarkdown(form.value.body));
 const terminologyOptions = computed(() => (terms as { term: string; slug: string }[]).map(term => ({
   label: term.term,
   value: `[${term.term}](/terminology/${term.slug})`,
@@ -132,7 +124,7 @@ const api = async <T,>(url: string, init: RequestInit = {}) => {
 
 const adminHttpMessage = (status: number) => {
   if (status === 401 || status === 403) return '管理者認証が必要です';
-  if (status === 404) return '管理APIが見つかりません';
+  if (status === 404) return '管理APIが見つかりません。Cloudflare の Deploy command が npm run deploy:cloudflare になっているか、/api/admin/* が Cloudflare Access の保護対象になっているか確認してください。';
   if (status >= 500) return '管理APIでエラーが発生しました';
   return `リクエストに失敗しました（${status}）`;
 };
@@ -328,6 +320,8 @@ const wrapSelection = (before: string, after = before) => {
   persistDraft();
 };
 
+const insertBlock = (snippet: string) => insertAtCursor(`\n${snippet.trim()}\n`);
+
 const insertTerm = (value: string) => {
   if (value) insertAtCursor(value);
 };
@@ -352,8 +346,8 @@ const restoreDraft = () => {
   }
 };
 
-const renderPreview = (markdown: string): PreviewBlock[] => {
-  const blocks: PreviewBlock[] = [];
+const renderMarkdown = (markdown: string) => {
+  const blocks: string[] = [];
   const lines = markdown.split('\n');
   let i = 0;
   while (i < lines.length) {
@@ -369,7 +363,7 @@ const renderPreview = (markdown: string): PreviewBlock[] => {
         code.push(lines[i]);
         i += 1;
       }
-      blocks.push({ type: 'code', text: code.join('\n') });
+      blocks.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
     } else if (line.startsWith(':::')) {
       const content: string[] = [];
       const containerType = line.replace(':::', '').trim() || 'info';
@@ -378,7 +372,8 @@ const renderPreview = (markdown: string): PreviewBlock[] => {
         content.push(lines[i]);
         i += 1;
       }
-      blocks.push({ type: 'container', text: content.join('\n'), containerType });
+      const blockType = containerClass(containerType);
+      blocks.push(`<div class="custom-block ${blockType}"><p class="custom-block-title">${escapeHtml(containerType)}</p>${renderMarkdown(content.join('\n'))}</div>`);
     } else if (/^\|.+\|$/.test(line)) {
       const rows: string[][] = [];
       while (i < lines.length && /^\|.+\|$/.test(lines[i])) {
@@ -387,30 +382,78 @@ const renderPreview = (markdown: string): PreviewBlock[] => {
         }
         i += 1;
       }
-      blocks.push({ type: 'table', rows });
+      const htmlRows = rows.map(row => `<tr>${row.map(cell => `<td>${renderInline(cell)}</td>`).join('')}</tr>`).join('');
+      blocks.push(`<table><tbody>${htmlRows}</tbody></table>`);
       continue;
     } else if (line.startsWith('### ')) {
-      blocks.push({ type: 'h3', text: line.slice(4) });
+      blocks.push(`<h3>${renderInline(line.slice(4))}</h3>`);
     } else if (line.startsWith('## ')) {
-      blocks.push({ type: 'h2', text: line.slice(3) });
+      blocks.push(`<h2>${renderInline(line.slice(3))}</h2>`);
     } else if (line.startsWith('# ')) {
-      blocks.push({ type: 'h1', text: line.slice(2) });
+      blocks.push(`<h1>${renderInline(line.slice(2))}</h1>`);
     } else if (line.startsWith('> ')) {
-      blocks.push({ type: 'quote', text: line.slice(2) });
+      blocks.push(`<blockquote>${renderInline(line.slice(2))}</blockquote>`);
     } else if (/^[-*] /.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^[-*] /.test(lines[i])) {
         items.push(lines[i].slice(2));
         i += 1;
       }
-      blocks.push({ type: 'list', items });
+      blocks.push(`<ul>${items.map(item => `<li>${renderInline(item)}</li>`).join('')}</ul>`);
+      continue;
+    } else if (/^\d+\. /.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push(lines[i].replace(/^\d+\. /, ''));
+        i += 1;
+      }
+      blocks.push(`<ol>${items.map(item => `<li>${renderInline(item)}</li>`).join('')}</ol>`);
       continue;
     } else {
-      blocks.push({ type: 'p', text: line });
+      const paragraph = [line];
+      while (i + 1 < lines.length && lines[i + 1].trim() && !isBlockStart(lines[i + 1])) {
+        i += 1;
+        paragraph.push(lines[i]);
+      }
+      blocks.push(`<p>${renderInline(paragraph.join(' '))}</p>`);
     }
     i += 1;
   }
-  return blocks;
+  return blocks.join('\n');
+};
+
+const isBlockStart = (line: string) =>
+  line.startsWith('# ') ||
+  line.startsWith('## ') ||
+  line.startsWith('### ') ||
+  line.startsWith('> ') ||
+  line.startsWith('```') ||
+  line.startsWith(':::') ||
+  /^[-*] /.test(line) ||
+  /^\d+\. /.test(line) ||
+  /^\|.+\|$/.test(line);
+
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+const renderInline = (value: string) => {
+  let html = escapeHtml(value);
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy">');
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g, '<a href="$2">$1</a>');
+  return html;
+};
+
+const containerClass = (value: string) => {
+  const normalized = value.split(/\s+/)[0]?.toLowerCase();
+  return ['info', 'tip', 'warning', 'danger'].includes(normalized) ? normalized : 'info';
 };
 
 onMounted(() => {
@@ -509,13 +552,19 @@ onMounted(() => {
 
         <div class="markdown-toolbar">
           <button type="button" @click="insertAtCursor('\n## 見出し\n')">H2</button>
+          <button type="button" @click="insertAtCursor('\n### 小見出し\n')">H3</button>
           <button type="button" @click="wrapSelection('**')">太字</button>
+          <button type="button" @click="wrapSelection('*')">斜体</button>
           <button type="button" @click="insertAtCursor('[text](/terminology/)')">リンク</button>
           <button type="button" @click="insertAtCursor('\n> 引用\n')">引用</button>
           <button type="button" @click="insertAtCursor('\n- item\n')">リスト</button>
+          <button type="button" @click="insertAtCursor('\n1. item\n')">番号</button>
           <button type="button" @click="insertAtCursor('\n| 項目 | 内容 |\n| :--- | :--- |\n|  |  |\n')">表</button>
           <button type="button" @click="insertAtCursor('\n```\ncode\n```\n')">コード</button>
-          <button type="button" @click="insertAtCursor('\n::: info 作中事実\n\n:::\n')">補足枠</button>
+          <button type="button" @click="insertBlock('::: info 作中事実\n\n:::')">事実</button>
+          <button type="button" @click="insertBlock('::: tip 考察\n\n:::')">考察</button>
+          <button type="button" @click="insertBlock('::: warning 注意\n\n:::')">注意</button>
+          <button type="button" @click="insertBlock('::: danger 未解決\n\n:::')">未解決</button>
           <select class="term-insert" @change="handleTermSelect">
             <option value="">用語リンク</option>
             <option v-for="term in terminologyOptions" :key="term.value" :value="term.value">{{ term.label }}</option>
@@ -536,24 +585,7 @@ onMounted(() => {
             @input="persistDraft"
           ></textarea>
 
-          <section class="admin-preview vp-doc" :class="{ active: mobilePane === 'preview' }" aria-label="Markdown preview">
-            <template v-for="(block, index) in previewBlocks" :key="index">
-              <h1 v-if="block.type === 'h1'">{{ block.text }}</h1>
-              <h2 v-else-if="block.type === 'h2'">{{ block.text }}</h2>
-              <h3 v-else-if="block.type === 'h3'">{{ block.text }}</h3>
-              <blockquote v-else-if="block.type === 'quote'">{{ block.text }}</blockquote>
-              <pre v-else-if="block.type === 'code'"><code>{{ block.text }}</code></pre>
-              <ul v-else-if="block.type === 'list'"><li v-for="item in block.items" :key="item">{{ item }}</li></ul>
-              <div v-else-if="block.type === 'container'" class="custom-block info">
-                <p class="custom-block-title">{{ block.containerType }}</p>
-                <p>{{ block.text }}</p>
-              </div>
-              <table v-else-if="block.type === 'table'">
-                <tbody><tr v-for="row in block.rows" :key="row.join('|')"><td v-for="cell in row" :key="cell">{{ cell }}</td></tr></tbody>
-              </table>
-              <p v-else>{{ block.text }}</p>
-            </template>
-          </section>
+          <section class="admin-preview vp-doc" :class="{ active: mobilePane === 'preview' }" aria-label="Markdown preview" v-html="renderedPreview"></section>
         </div>
 
         <div class="editor-actions">
