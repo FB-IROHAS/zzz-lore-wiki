@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import terms from '../data/terminologyData.json';
 
 type Category = 'character' | 'organization' | 'terminology' | 'theory' | 'timeline' | 'source';
 type Status = 'draft' | 'published' | 'archived';
@@ -30,14 +29,22 @@ interface ImageItem {
   uploadedAt?: string;
 }
 
-const categories: { value: Category; label: string }[] = [
-  { value: 'character', label: 'キャラクター' },
-  { value: 'organization', label: '組織・陣営' },
-  { value: 'terminology', label: '用語' },
-  { value: 'theory', label: '考察' },
-  { value: 'timeline', label: '年表' },
-  { value: 'source', label: '参考文献' },
+const authorCategories: { value: Category; label: string; hint: string }[] = [
+  { value: 'theory', label: 'THEORY', hint: '考察記事' },
+  { value: 'timeline', label: 'TIMELINE', hint: '時系列記事' },
+  { value: 'source', label: 'SOURCE', hint: '出典・資料記事' },
 ];
+
+const categoryLabels: Record<Category, string> = {
+  character: 'LORE',
+  organization: 'LORE',
+  terminology: 'LORE',
+  theory: 'THEORY',
+  timeline: 'TIMELINE',
+  source: 'SOURCE',
+};
+
+const writableCategories = new Set<Category>(authorCategories.map(category => category.value));
 
 const statuses: { value: Status; label: string }[] = [
   { value: 'draft', label: '下書き' },
@@ -46,11 +53,8 @@ const statuses: { value: Status; label: string }[] = [
 ];
 
 const imageCategories = [
-  { value: 'characters', label: 'キャラクター' },
-  { value: 'terminology', label: '用語' },
   { value: 'theories', label: '考察' },
   { value: 'timeline', label: '年表' },
-  { value: 'organizations', label: '組織・陣営' },
   { value: 'sources', label: '参考文献' },
   { value: 'misc', label: 'その他' },
 ];
@@ -66,7 +70,7 @@ const error = ref('');
 const isLoading = ref(false);
 const isSaving = ref(false);
 const showImages = ref(false);
-const imageCategory = ref('characters');
+const imageCategory = ref('theories');
 const fileInput = ref<HTMLInputElement | null>(null);
 const sidebarCollapsed = ref(false);
 const mobilePane = ref<'markdown' | 'preview'>('markdown');
@@ -86,22 +90,30 @@ const form = ref({
 });
 
 const categoryLabel = (value: Category | string) =>
-  categories.find(category => category.value === value)?.label ?? String(value);
+  categoryLabels[value as Category] ?? String(value);
 
 const statusLabel = (value: Status | string) =>
   statuses.find(status => status.value === value)?.label ?? String(value);
 
+const hiddenArchiveCount = computed(() => articles.value.filter(article => !writableCategories.has(article.category)).length);
+
 const filteredArticles = computed(() => articles.value.filter(article => {
+  if (!writableCategories.has(article.category)) return false;
   const matchesCategory = selectedCategory.value === 'all' || article.category === selectedCategory.value;
   const target = `${article.title} ${article.slug} ${(article.tags ?? []).join(' ')}`.toLowerCase();
   return matchesCategory && target.includes(query.value.toLowerCase());
 }));
 
 const renderedPreview = computed(() => renderMarkdown(form.value.body));
-const terminologyOptions = computed(() => (terms as { term: string; slug: string }[]).map(term => ({
-  label: term.term,
-  value: `[${term.term}](/terminology/${term.slug})`,
-})));
+
+const formatArticleTitle = (article: ArticleSummary) => {
+  if (article.title && article.title !== article.slug) return article.title;
+  return article.slug
+    .split('-')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
 const api = async <T,>(url: string, init: RequestInit = {}) => {
   const headers = new Headers(init.headers);
@@ -168,7 +180,48 @@ const newArticle = () => {
     slug: '',
     tagsText: '',
     status: 'draft',
-    body: '## 概要\n\n',
+    body: [
+      '## Summary',
+      '',
+      'この記事で追跡する疑問を短く書く。',
+      '',
+      '::: info CONFIRMED',
+      '',
+      '- 作中・公式情報から確認できる事実を書く。',
+      '',
+      ':::',
+      '',
+      '## Evidence',
+      '',
+      '- [S-000] 出典名 / 該当シーン / 根拠',
+      '',
+      '## Interpretation',
+      '',
+      '確認できる事実から読み取れる考察を書く。',
+      '',
+      '::: warning SPECULATION',
+      '',
+      '根拠が弱い推測はここに分けて書く。',
+      '',
+      ':::',
+      '',
+      '## Counterarguments',
+      '',
+      '- 反証や別解釈を書く。',
+      '',
+      '::: danger UNRESOLVED',
+      '',
+      '- 現時点で判断できない問題を書く。',
+      '',
+      ':::',
+      '',
+      '## Related',
+      '',
+      '- Related Lore:',
+      '- Related Sources:',
+      '- Related Theories:',
+      '',
+    ].join('\n'),
     sha: '',
     originalSlug: '',
     originalCategory: 'theory',
@@ -321,16 +374,6 @@ const wrapSelection = (before: string, after = before) => {
 };
 
 const insertBlock = (snippet: string) => insertAtCursor(`\n${snippet.trim()}\n`);
-
-const insertTerm = (value: string) => {
-  if (value) insertAtCursor(value);
-};
-
-const handleTermSelect = (event: Event) => {
-  const select = event.target as HTMLSelectElement;
-  insertTerm(select.value);
-  select.value = '';
-};
 
 const persistDraft = () => {
   localStorage.setItem('zzz-admin-draft', JSON.stringify(form.value));
@@ -495,9 +538,14 @@ onMounted(() => {
 
         <input v-model="query" class="admin-input" type="search" placeholder="記事検索" />
         <select v-model="selectedCategory" class="admin-input">
-          <option value="all">すべて</option>
-          <option v-for="category in categories" :key="category.value" :value="category.value">{{ category.label }}</option>
+          <option value="all">すべての記事</option>
+          <option v-for="category in authorCategories" :key="category.value" :value="category.value">{{ category.label }}</option>
         </select>
+
+        <p class="admin-sidebar-note">
+          THEORIES / TIMELINE / SOURCES の記事だけを表示します。
+          <span v-if="hiddenArchiveCount">Lore Index用の旧データ {{ hiddenArchiveCount }} 件は非表示です。</span>
+        </p>
 
         <div v-if="showImages" class="image-manager">
           <strong>画像管理</strong>
@@ -518,6 +566,9 @@ onMounted(() => {
         </div>
 
         <div class="article-list" aria-label="記事一覧">
+          <p v-if="!filteredArticles.length" class="article-empty">
+            まだ記事がありません。新規記事から考察記事を作成してください。
+          </p>
           <button
             v-for="article in filteredArticles"
             :key="`${article.category}/${article.slug}`"
@@ -525,7 +576,7 @@ onMounted(() => {
             class="article-list-item"
             @click="selectArticle(article)"
           >
-            <strong>{{ article.title }}</strong>
+            <strong>{{ formatArticleTitle(article) }}</strong>
             <span>{{ categoryLabel(article.category) }} / {{ article.slug }}</span>
             <small>{{ article.updatedAt || '更新日なし' }} / {{ statusLabel(article.status) }}</small>
           </button>
@@ -537,7 +588,9 @@ onMounted(() => {
           <label>タイトル<input v-model="form.title" class="admin-input" @input="persistDraft" /></label>
           <label>カテゴリ
             <select v-model="form.category" class="admin-input" @change="persistDraft">
-              <option v-for="category in categories" :key="category.value" :value="category.value">{{ category.label }}</option>
+              <option v-for="category in authorCategories" :key="category.value" :value="category.value">
+                {{ category.label }} - {{ category.hint }}
+              </option>
             </select>
           </label>
           <label>slug<input v-model="form.slug" class="admin-input" placeholder="sunbringer" @input="persistDraft" /></label>
@@ -555,20 +608,17 @@ onMounted(() => {
           <button type="button" @click="insertAtCursor('\n### 小見出し\n')">H3</button>
           <button type="button" @click="wrapSelection('**')">太字</button>
           <button type="button" @click="wrapSelection('*')">斜体</button>
-          <button type="button" @click="insertAtCursor('[text](/terminology/)')">リンク</button>
+          <button type="button" @click="insertAtCursor('[Lore](/lore/)')">Loreリンク</button>
+          <button type="button" @click="insertAtCursor('[S-000]')">Source ID</button>
           <button type="button" @click="insertAtCursor('\n> 引用\n')">引用</button>
           <button type="button" @click="insertAtCursor('\n- item\n')">リスト</button>
           <button type="button" @click="insertAtCursor('\n1. item\n')">番号</button>
           <button type="button" @click="insertAtCursor('\n| 項目 | 内容 |\n| :--- | :--- |\n|  |  |\n')">表</button>
           <button type="button" @click="insertAtCursor('\n```\ncode\n```\n')">コード</button>
-          <button type="button" @click="insertBlock('::: info 作中事実\n\n:::')">事実</button>
-          <button type="button" @click="insertBlock('::: tip 考察\n\n:::')">考察</button>
-          <button type="button" @click="insertBlock('::: warning 注意\n\n:::')">注意</button>
-          <button type="button" @click="insertBlock('::: danger 未解決\n\n:::')">未解決</button>
-          <select class="term-insert" @change="handleTermSelect">
-            <option value="">用語リンク</option>
-            <option v-for="term in terminologyOptions" :key="term.value" :value="term.value">{{ term.label }}</option>
-          </select>
+          <button type="button" @click="insertBlock('::: info CONFIRMED\n\n:::')">CONFIRMED</button>
+          <button type="button" @click="insertBlock('::: tip THEORY\n\n:::')">THEORY</button>
+          <button type="button" @click="insertBlock('::: warning SPECULATION\n\n:::')">SPECULATION</button>
+          <button type="button" @click="insertBlock('::: danger UNRESOLVED\n\n:::')">UNRESOLVED</button>
         </div>
 
         <div class="mobile-editor-tabs" role="tablist" aria-label="編集表示">
