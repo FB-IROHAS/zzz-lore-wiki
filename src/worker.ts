@@ -29,15 +29,32 @@ import {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.pathname.startsWith('/api/admin/')) {
-      return handleAdminApi(request, env, url);
+    try {
+      const url = new URL(request.url);
+      if (url.pathname.startsWith('/api/admin/')) {
+        return handleAdminApi(request, env, url);
+      }
+      if (isMaintenanceMode(env)) {
+        return handleMaintenanceRequest(request, env, url);
+      }
+      return serveAssets(request, env);
+    } catch (error) {
+      console.error(error);
+      const url = new URL(request.url);
+      if (url.pathname.startsWith('/api/')) {
+        return json({ error: 'Worker runtime error' }, 500);
+      }
+      return new Response('Worker runtime error', {
+        status: 500,
+        headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' },
+      });
     }
-    if (isMaintenanceMode(env)) {
-      return handleMaintenanceRequest(request, env, url);
-    }
-    return env.ASSETS.fetch(request);
   },
+};
+
+const serveAssets = (request: Request, env: Env) => {
+  if (!env.ASSETS) throw new HttpError(500, 'Static assets binding is not configured');
+  return env.ASSETS.fetch(request);
 };
 
 const isMaintenanceMode = (env: Env) => env.MAINTENANCE_MODE === 'true';
@@ -46,13 +63,13 @@ const handleMaintenanceRequest = async (request: Request, env: Env, url: URL) =>
   if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
     try {
       await assertAdmin(request, env);
-      return env.ASSETS.fetch(request);
+      return serveAssets(request, env);
     } catch (error) {
       return handleError(error);
     }
   }
 
-  if (isPublicAsset(url.pathname)) return env.ASSETS.fetch(request);
+  if (isPublicAsset(url.pathname)) return serveAssets(request, env);
 
   return new Response(maintenanceHtml(env), {
     status: 503,
@@ -105,6 +122,7 @@ const handleAdminApi = async (request: Request, env: Env, url: URL) => {
     const path = url.pathname.replace(/^\/api\/admin\/?/, '');
     const segments = path.split('/').filter(Boolean).map(segment => decodeURIComponent(segment));
 
+    if (request.method === 'GET' && path === 'health') return getHealth(env);
     if (request.method === 'GET' && path === 'session') return getSession(request, env);
 
     if (segments[0] === 'articles') {
@@ -126,6 +144,14 @@ const handleAdminApi = async (request: Request, env: Env, url: URL) => {
     return handleError(error);
   }
 };
+
+const getHealth = (env: Env) => json({
+  ok: true,
+  worker: 'zzz-lore-wiki',
+  hasAssetsBinding: Boolean(env.ASSETS),
+  hasAdminEmail: Boolean(env.ADMIN_EMAIL),
+  hasGithubToken: Boolean(env.GITHUB_TOKEN),
+});
 
 const getSession = async (request: Request, env: Env) => {
   const identity = await assertAdmin(request, env);

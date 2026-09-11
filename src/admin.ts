@@ -14,7 +14,7 @@ export interface Env {
     put(key: string, value: ReadableStream, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
     delete(key: string): Promise<unknown>;
   };
-  ASSETS: { fetch(request: Request): Promise<Response> };
+  ASSETS?: { fetch(request: Request): Promise<Response> };
 }
 
 export interface ArticleMeta {
@@ -97,16 +97,7 @@ const getAccessEmail = async (request: Request, env: Env) => {
     return env.ADMIN_EMAIL;
   }
 
-  try {
-    const identity = await fetch(`${url.origin}/cdn-cgi/access/get-identity`, {
-      headers: { cookie: request.headers.get('cookie') ?? '' },
-    });
-    if (!identity.ok) return null;
-    const data = (await identity.json()) as { email?: string };
-    return data.email ?? null;
-  } catch {
-    return null;
-  }
+  return null;
 };
 
 export const assertWriteSecurity = async (request: Request, env: Env) => {
