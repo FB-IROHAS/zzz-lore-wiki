@@ -6,7 +6,15 @@ export interface Env {
   GITHUB_BRANCH?: string;
   CLOUDFLARE_DEPLOY_HOOK_URL?: string;
   PUBLIC_IMAGE_BASE_URL?: string;
-  ADMIN_IMAGES_BUCKET?: R2Bucket;
+  ADMIN_DEV_BYPASS?: string;
+  MAINTENANCE_MODE?: string;
+  MAINTENANCE_MESSAGE?: string;
+  ADMIN_IMAGES_BUCKET?: {
+    list(options?: { prefix?: string }): Promise<{ objects: { key: string; size: number; uploaded?: Date }[] }>;
+    put(key: string, value: ReadableStream, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
+    delete(key: string): Promise<unknown>;
+  };
+  ASSETS: { fetch(request: Request): Promise<Response> };
 }
 
 export interface ArticleMeta {
@@ -73,19 +81,22 @@ export const handleError = (error: unknown) => {
 };
 
 export const assertAdmin = async (request: Request, env: Env) => {
-  const email = await getAccessEmail(request);
+  const email = await getAccessEmail(request, env);
   const adminEmail = env.ADMIN_EMAIL?.trim().toLowerCase();
-  if (!email || !adminEmail || email.toLowerCase() !== adminEmail) {
-    throw new HttpError(403, 'Forbidden');
-  }
+  if (!email) throw new HttpError(401, 'Administrator authentication is required');
+  if (!adminEmail || email.toLowerCase() !== adminEmail) throw new HttpError(403, 'Forbidden');
   return { email };
 };
 
-const getAccessEmail = async (request: Request) => {
+const getAccessEmail = async (request: Request, env: Env) => {
   const headerEmail = request.headers.get('cf-access-authenticated-user-email');
   if (headerEmail) return headerEmail;
 
   const url = new URL(request.url);
+  if (isLocalRequest(url) && env.ADMIN_DEV_BYPASS === 'true' && env.ADMIN_EMAIL) {
+    return env.ADMIN_EMAIL;
+  }
+
   try {
     const identity = await fetch(`${url.origin}/cdn-cgi/access/get-identity`, {
       headers: { cookie: request.headers.get('cookie') ?? '' },
@@ -127,8 +138,10 @@ const assertCsrf = (request: Request) => {
 
 export const createCsrfToken = () => crypto.randomUUID();
 
-export const csrfCookie = (token: string) =>
-  `admin_csrf=${token}; Path=/; Secure; SameSite=Strict; Max-Age=7200`;
+export const csrfCookie = (request: Request, token: string) => {
+  const secure = new URL(request.url).protocol === 'https:' ? ' Secure;' : '';
+  return `admin_csrf=${token}; Path=/;${secure} SameSite=Strict; Max-Age=7200`;
+};
 
 const parseCookies = (cookieHeader: string | null) => {
   const result: Record<string, string> = {};
@@ -140,9 +153,7 @@ const parseCookies = (cookieHeader: string | null) => {
 };
 
 export const validateCategory = (value: unknown): ArticleCategory => {
-  if (typeof value !== 'string' || !(value in CATEGORY_DIRS)) {
-    throw new HttpError(400, 'Invalid category');
-  }
+  if (typeof value !== 'string' || !(value in CATEGORY_DIRS)) throw new HttpError(400, 'Invalid category');
   return value as ArticleCategory;
 };
 
@@ -182,24 +193,21 @@ export const sanitizeMeta = (payload: ArticlePayload): ArticlePayload => {
   };
 };
 
-export const serializeMarkdown = (meta: ArticleMeta, body: string) => {
-  const lines = [
-    '---',
-    `title: ${quoteYaml(meta.title)}`,
-    `description: ${quoteYaml(meta.description)}`,
-    `category: ${meta.category}`,
-    'tags:',
-    ...meta.tags.map(tag => `  - ${quoteYaml(tag)}`),
-    `createdAt: ${meta.createdAt || today()}`,
-    `updatedAt: ${meta.updatedAt || today()}`,
-    `status: ${meta.status}`,
-    '---',
-    '',
-    body.trim(),
-    '',
-  ];
-  return lines.join('\n');
-};
+export const serializeMarkdown = (meta: ArticleMeta, body: string) => [
+  '---',
+  `title: ${quoteYaml(meta.title)}`,
+  `description: ${quoteYaml(meta.description)}`,
+  `category: ${meta.category}`,
+  'tags:',
+  ...meta.tags.map(tag => `  - ${quoteYaml(tag)}`),
+  `createdAt: ${meta.createdAt || today()}`,
+  `updatedAt: ${meta.updatedAt || today()}`,
+  `status: ${meta.status}`,
+  '---',
+  '',
+  body.trim(),
+  '',
+].join('\n');
 
 const quoteYaml = (value: string) => JSON.stringify(value ?? '');
 const today = () => new Date().toISOString().slice(0, 10);
@@ -327,3 +335,16 @@ export const validateStoredImageKey = (key: string) => {
   }
   return key;
 };
+
+export const inferCategory = (path: string) => {
+  if (path.startsWith('docs/characters/')) return 'character';
+  if (path.startsWith('docs/organizations/')) return 'organization';
+  if (path.startsWith('docs/terminology/')) return 'terminology';
+  if (path.startsWith('docs/theories/')) return 'theory';
+  if (path.startsWith('docs/timeline/')) return 'timeline';
+  if (path.startsWith('docs/sources/')) return 'source';
+  return 'theory';
+};
+
+const isLocalRequest = (url: URL) =>
+  url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]';

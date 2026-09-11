@@ -42,8 +42,7 @@ export default defineConfig({
       { text: '組織・勢力', link: '/organizations/' },
       { text: '用語集', link: '/terminology/' },
       { text: '考察', link: '/theories/' },
-      { text: '資料・出典', link: '/sources/' },
-      { text: '管理', link: '/admin/' }
+      { text: '資料・出典', link: '/sources/' }
     ],
 
     // カテゴリごとのサイドバー構成
@@ -99,23 +98,6 @@ export default defineConfig({
           text: '資料・出典',
           items: [
             { text: '資料・出典一覧', link: '/sources/' }
-          ]
-        }
-      ],
-      '/editor/': [
-        {
-          text: '管理者向け編集',
-          items: [
-            { text: 'GitHub編集ガイド', link: '/editor/' }
-          ]
-        }
-      ],
-      '/admin/': [
-        {
-          text: '管理者専用',
-          items: [
-            { text: '記事管理', link: '/admin/' },
-            { text: 'GitHub編集ガイド', link: '/editor/' }
           ]
         }
       ],

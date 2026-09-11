@@ -76,7 +76,8 @@ const isSaving = ref(false);
 const showImages = ref(false);
 const imageCategory = ref('characters');
 const fileInput = ref<HTMLInputElement | null>(null);
-const apiUnavailable = ref(false);
+const sidebarCollapsed = ref(false);
+const mobilePane = ref<'markdown' | 'preview'>('markdown');
 
 const form = ref({
   title: '',
@@ -116,17 +117,24 @@ const api = async <T,>(url: string, init: RequestInit = {}) => {
   if (csrf.value && init.method && init.method !== 'GET') headers.set('x-csrf-token', csrf.value);
   const response = await fetch(url, { ...init, headers, credentials: 'same-origin' });
   const isJson = response.headers.get('content-type')?.includes('application/json');
-  if (url.startsWith('/api/admin/') && !isJson) {
-    throw new Error('管理APIが利用できません。ローカルの vitepress dev では Cloudflare Pages Functions が動かないため、記事保存や画像アップロードは Cloudflare Pages 環境で実行してください。');
-  }
   const data = isJson ? await response.json().catch(() => ({})) : {};
+  if (url.startsWith('/api/admin/') && !response.ok && !isJson) throw new Error(adminHttpMessage(response.status));
   if (!response.ok) {
-    if (response.status === 404 && url.startsWith('/api/admin/')) {
-      throw new Error('管理APIが見つかりません。ローカルの vitepress dev では Cloudflare Pages Functions が動かないため、記事保存や画像アップロードは Cloudflare Pages 環境で実行してください。');
-    }
-    throw new Error(data.error || `リクエストに失敗しました（${response.status}）`);
+    console.error('Admin API request failed', { url, status: response.status, data });
+    throw new Error(data.error || adminHttpMessage(response.status));
+  }
+  if (url.startsWith('/api/admin/') && !isJson) {
+    console.error('Admin API returned a non-JSON response', { url, status: response.status });
+    throw new Error('管理APIが見つかりません');
   }
   return data as T;
+};
+
+const adminHttpMessage = (status: number) => {
+  if (status === 401 || status === 403) return '管理者認証が必要です';
+  if (status === 404) return '管理APIが見つかりません';
+  if (status >= 500) return '管理APIでエラーが発生しました';
+  return `リクエストに失敗しました（${status}）`;
 };
 
 const initialize = async () => {
@@ -136,10 +144,8 @@ const initialize = async () => {
     const session = await api<{ email: string; csrf: string }>('/api/admin/session');
     sessionEmail.value = session.email;
     csrf.value = session.csrf;
-    apiUnavailable.value = false;
     await Promise.all([loadArticles(), loadImages()]);
   } catch (err) {
-    apiUnavailable.value = true;
     error.value = err instanceof Error ? err.message : '管理APIへ接続できません';
   } finally {
     isLoading.value = false;
@@ -420,19 +426,24 @@ onMounted(() => {
         <p>ZZZ Lore & Archive</p>
         <h1>管理者ダッシュボード</h1>
       </div>
-      <button type="button" @click="initialize">再読み込み</button>
+      <div class="admin-header-actions">
+        <button type="button" @click="sidebarCollapsed = !sidebarCollapsed">
+          {{ sidebarCollapsed ? '記事一覧を表示' : '記事一覧を隠す' }}
+        </button>
+        <button type="button" @click="initialize">再読み込み</button>
+      </div>
     </header>
 
     <div class="admin-status">
       <span v-if="sessionEmail">ログイン中: {{ sessionEmail }}</span>
       <span v-else>Cloudflare Accessで保護された管理画面です</span>
-      <span v-if="apiUnavailable">ローカルでは閲覧UIのみ確認できます</span>
+      <span>{{ isLoading ? '読み込み中' : 'API: /api/admin/*' }}</span>
     </div>
 
     <p v-if="error" class="admin-alert error">{{ error }}</p>
     <p v-if="message" class="admin-alert success">{{ message }}</p>
 
-    <div class="admin-layout">
+    <div class="admin-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <aside class="admin-sidebar">
         <div class="admin-sidebar-actions">
           <button type="button" class="primary" @click="newArticle">新規記事</button>
@@ -511,15 +522,21 @@ onMounted(() => {
           </select>
         </div>
 
+        <div class="mobile-editor-tabs" role="tablist" aria-label="編集表示">
+          <button type="button" :class="{ active: mobilePane === 'markdown' }" @click="mobilePane = 'markdown'">Markdown</button>
+          <button type="button" :class="{ active: mobilePane === 'preview' }" @click="mobilePane = 'preview'">Preview</button>
+        </div>
+
         <div class="editor-grid">
           <textarea
             v-model="form.body"
             class="admin-editor-textarea"
+            :class="{ active: mobilePane === 'markdown' }"
             spellcheck="false"
             @input="persistDraft"
           ></textarea>
 
-          <section class="admin-preview vp-doc" aria-label="Markdown preview">
+          <section class="admin-preview vp-doc" :class="{ active: mobilePane === 'preview' }" aria-label="Markdown preview">
             <template v-for="(block, index) in previewBlocks" :key="index">
               <h1 v-if="block.type === 'h1'">{{ block.text }}</h1>
               <h2 v-else-if="block.type === 'h2'">{{ block.text }}</h2>
@@ -540,8 +557,9 @@ onMounted(() => {
         </div>
 
         <div class="editor-actions">
+          <button type="button" @click="restoreDraft">Cancel</button>
           <button type="button" class="primary" :disabled="isSaving" @click="saveArticle">
-            {{ isSaving ? '保存中...' : '保存してGitHubへ反映' }}
+            {{ isSaving ? 'Saving...' : form.status === 'published' ? 'Save Publish' : 'Save Draft' }}
           </button>
           <button type="button" class="danger" :disabled="!form.sha" @click="deleteArticle">削除</button>
         </div>

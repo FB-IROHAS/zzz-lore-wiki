@@ -1,0 +1,7 @@
+ADMIN_EMAIL="local-admin@example.com"
+ADMIN_DEV_BYPASS="true"
+
+# Set these when testing real GitHub/R2 writes locally.
+GITHUB_TOKEN=""
+CLOUDFLARE_DEPLOY_HOOK_URL=""
+PUBLIC_IMAGE_BASE_URL=""
