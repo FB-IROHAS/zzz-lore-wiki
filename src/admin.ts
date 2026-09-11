@@ -75,9 +75,25 @@ export const json = (data: unknown, status = 200, headers: HeadersInit = {}) =>
   });
 
 export const handleError = (error: unknown) => {
-  if (error instanceof HttpError) return json({ error: error.message }, error.status);
+  const httpError = asHttpError(error);
+  if (httpError) return json({ error: httpError.message }, httpError.status);
   console.error(error);
   return json({ error: 'Internal server error' }, 500);
+};
+
+export const asHttpError = (error: unknown) => {
+  if (error instanceof HttpError) return error;
+  if (
+    error &&
+    typeof error === 'object' &&
+    'status' in error &&
+    'message' in error &&
+    typeof (error as { status?: unknown }).status === 'number' &&
+    typeof (error as { message?: unknown }).message === 'string'
+  ) {
+    return error as { status: number; message: string };
+  }
+  return null;
 };
 
 export const assertAdmin = async (request: Request, env: Env) => {
@@ -241,23 +257,29 @@ const unquoteYaml = (value: string) => {
 };
 
 const githubBase = (env: Env) => {
-  const owner = env.GITHUB_OWNER || 'irohas3074';
+  const owner = env.GITHUB_OWNER || 'FB-IROHAS';
   const repo = env.GITHUB_REPO || 'zzz-lore-wiki';
   return `https://api.github.com/repos/${owner}/${repo}`;
 };
 
 export const githubRequest = async <T>(env: Env, path: string, init: RequestInit = {}) => {
   if (!env.GITHUB_TOKEN) throw new HttpError(500, 'GitHub token is not configured');
-  const response = await fetch(`${githubBase(env)}${path}`, {
-    ...init,
-    headers: {
-      accept: 'application/vnd.github+json',
-      authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      'content-type': 'application/json',
-      'user-agent': 'zzz-lore-admin',
-      ...init.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${githubBase(env)}${path}`, {
+      ...init,
+      headers: {
+        accept: 'application/vnd.github+json',
+        authorization: `Bearer ${env.GITHUB_TOKEN.trim()}`,
+        'content-type': 'application/json',
+        'user-agent': 'zzz-lore-admin',
+        ...init.headers,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new HttpError(502, `GitHub request failed: ${message}`);
+  }
   const text = await response.text();
   let data: { message?: string } | null = null;
   try {

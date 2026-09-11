@@ -21,7 +21,7 @@ head_sampling_rate = 1
 persist = true
 
 [vars]
-GITHUB_OWNER = "irohas3074"
+GITHUB_OWNER = "FB-IROHAS"
 GITHUB_REPO = "zzz-lore-wiki"
 GITHUB_BRANCH = "main"
 ADMIN_EMAIL = "irohas3074@gmail.com"

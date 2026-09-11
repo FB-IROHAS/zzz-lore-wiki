@@ -1,5 +1,6 @@
 import {
   articlePath,
+  asHttpError,
   assertAdmin,
   assertReadSecurity,
   assertWriteSecurity,
@@ -124,6 +125,7 @@ const handleAdminApi = async (request: Request, env: Env, url: URL) => {
 
     if (request.method === 'GET' && path === 'health') return getHealth(env);
     if (request.method === 'GET' && path === 'session') return getSession(request, env);
+    if (request.method === 'GET' && path === 'debug/github') return debugGithub(request, env);
 
     if (segments[0] === 'articles') {
       if (segments.length === 1 && request.method === 'GET') return listArticles(request, env);
@@ -159,9 +161,50 @@ const getSession = async (request: Request, env: Env) => {
   return json({ email: identity.email, csrf }, 200, { 'set-cookie': csrfCookie(request, csrf) });
 };
 
+const debugGithub = async (request: Request, env: Env) => {
+  await assertReadSecurity(request, env);
+  const branch = env.GITHUB_BRANCH || 'main';
+  const owner = env.GITHUB_OWNER || 'irohas3074';
+  const repo = env.GITHUB_REPO || 'zzz-lore-wiki';
+
+  try {
+    const repository = await githubRequest<{ full_name?: string; default_branch?: string }>(env, '');
+    const files = await listGithubArticles(env);
+    return json({
+      ok: true,
+      owner,
+      repo,
+      branch,
+      repository: repository.full_name,
+      defaultBranch: repository.default_branch,
+      matchedArticleCount: files.length,
+      firstArticles: files.slice(0, 10).map(file => file.path),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = asHttpError(error)?.status ?? 500;
+    return json({
+      ok: false,
+      owner,
+      repo,
+      branch,
+      status,
+      error: message,
+    }, 200);
+  }
+};
+
 const listArticles = async (request: Request, env: Env) => {
   await assertReadSecurity(request, env);
-  const files = await listGithubArticles(env);
+  let files;
+  try {
+    files = await listGithubArticles(env);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = asHttpError(error)?.status ?? 500;
+    return json({ articles: [], error: message }, status);
+  }
+
   const articles = files.map(file => {
     const slug = file.path.split('/').pop()?.replace(/\.md$/, '') ?? file.path;
     return {
