@@ -162,39 +162,20 @@ const getSession = async (request: Request, env: Env) => {
 const listArticles = async (request: Request, env: Env) => {
   await assertReadSecurity(request, env);
   const files = await listGithubArticles(env);
-  const articles = [];
-
-  for (const file of files) {
-    try {
-      const detail = await getGithubFile(env, file.path);
-      const article = parseArticle(file.path, decodeBase64(detail.content), detail.sha);
-      articles.push({
-        path: article.path,
-        slug: article.slug,
-        sha: article.sha,
-        title: article.meta.title ?? article.slug,
-        description: article.meta.description ?? '',
-        category: article.meta.category ?? inferCategory(article.path),
-        tags: article.meta.tags ?? [],
-        updatedAt: article.meta.updatedAt ?? '',
-        status: article.meta.status ?? 'draft',
-      });
-    } catch (error) {
-      console.error(`Failed to load article metadata: ${file.path}`, error);
-      const slug = file.path.split('/').pop()?.replace(/\.md$/, '') ?? file.path;
-      articles.push({
-        path: file.path,
-        slug,
-        sha: file.sha,
-        title: slug,
-        description: '',
-        category: inferCategory(file.path),
-        tags: [],
-        updatedAt: '',
-        status: 'draft',
-      });
-    }
-  }
+  const articles = files.map(file => {
+    const slug = file.path.split('/').pop()?.replace(/\.md$/, '') ?? file.path;
+    return {
+      path: file.path,
+      slug,
+      sha: file.sha,
+      title: slug,
+      description: '',
+      category: inferCategory(file.path),
+      tags: [],
+      updatedAt: '',
+      status: 'draft',
+    };
+  });
 
   return json({ articles });
 };
